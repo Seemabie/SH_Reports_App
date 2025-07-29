@@ -1,26 +1,27 @@
 import streamlit as st
 import pandas as pd
 import random
-from xhtml2pdf import pisa
-from io import BytesIO
-from jinja2 import Template  # ✅ Only import Template, not Environment/FileSystemLoader
+import pdfkit
+from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import numpy as np
+import os
+
+# PDF config
+pdf_options = {
+    "enable-local-file-access": "",
+    "page-size": "A4",
+    "margin-top": "0.75in",
+    "margin-right": "0.75in",
+    "margin-bottom": "0.75in",
+    "margin-left": "0.75in"
+}
+
+path_wkhtmltopdf = r"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
 
 st.set_page_config(layout="wide")
 st.title("📋 S.H Reports")
-
-# Function to convert HTML to PDF using xhtml2pdf
-def html_to_pdf(source_html):
-    """Convert HTML string to PDF bytes using xhtml2pdf"""
-    output = BytesIO()
-    pisa_status = pisa.CreatePDF(source_html, dest=output)
-    
-    if pisa_status.err:
-        st.error("Error generating PDF")
-        return None
-    
-    return output.getvalue()
 
 # ===== EMBEDDED CSV DATA =====
 def get_default_department_data():
@@ -161,7 +162,7 @@ else:  # Upload Custom CSV
         st.success(f"✅ File uploaded successfully: {uploaded_file.name}")
 
 st.subheader("CIGARETTES")
-c1, c2 = st.columns(2)
+c1, c2 = st.columns(2)  # Changed from 3 to 2 columns
 cig_items = c1.number_input("Number of Packets Sold", value=0, key="cig_items")
 cig_gross = c2.number_input("Cigarette Gross", value=0.0)
 
@@ -173,7 +174,7 @@ else:
     cig_cust = 0
 
 st.subheader("Electronic-CIGARETTES")
-e1, e2 = st.columns(2)
+e1, e2 = st.columns(2)  # Changed from 3 to 2 columns
 ecig_items = e1.number_input("Number of Packets Sold", value=0, key="ecig_items")
 ecig_gross = e2.number_input("E-Cigarette Gross", value=0.0)
 
@@ -426,265 +427,15 @@ if df is not None:
         else:
             st.error(f"❌ Difference: ${abs(verification_total - total_mop_sales):,.2f}")
 
-    # MAIN REPORT FUNCTION (Fixed and Complete)
+    # MAIN REPORT FUNCTION (Updated to use pay_out parameter)
     def build_main_report(manual_mop_vals, total_mop_sales_val, df_final_param, merch_mask_param, total_merch_sale_param, sales_tax_param, tot_taxes_param, incl_taxes_param, total_merch_gross_param, total_discounts_param, total_refunds_param, total_percent_param, pay_out_val):
         
-        # Complete professional template with all sections
-        template_str = '''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Department Full Report</title>
-    <style>
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 14px;
-            line-height: 1.3;
-            margin: 0.5in;
-            padding: 0;
-            color: #000;
-            background: #fff;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .section {
-            margin-bottom: 15px;
-            page-break-inside: avoid;
-        }
-        .section-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-decoration: underline;
-            font-size: 16px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-        td, th {
-            padding: 2px 4px;
-            text-align: left;
-            vertical-align: top;
-            border: none;
-        }
-        .right { text-align: right; }
-        .center { text-align: center; }
-        .line {
-            border-bottom: 1px solid #000;
-            margin: 8px 0;
-            height: 1px;
-        }
-        .bold { font-weight: bold; }
-        .dept-table td {
-            border-bottom: 1px dotted #999;
-            padding: 3px 5px;
-        }
-        .dept-table .bold {
-            border-bottom: 1px solid #000;
-        }
-        .summary-line {
-            margin: 3px 0;
-            font-weight: bold;
-        }
-        .fuel-table td {
-            padding: 2px 5px;
-        }
-        .fuel-table .bold {
-            font-weight: bold;
-            border-top: 1px solid #000;
-        }
-    </style>
-</head>
-<body>
+        env = Environment(loader=FileSystemLoader("."))
+        report_template = env.get_template("realistic_report_template.html")
 
-<div class="header">
-    <div class="bold">{{ store_number }}</div>
-    <div>Store ID: {{ store_id }}</div>
-    <div>Period: {{ period }} to {{ close_period }}</div>
-    <div>Department Full Report</div>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">DEPARTMENT REPORT</div>
-    <table class="dept-table">
-        <tr>
-            <td class="bold">Dept#</td>
-            <td class="bold">Description</td>
-            <td class="bold right">Cust#</td>
-            <td class="bold right">Items</td>
-            <td class="bold right">% Sales</td>
-            <td class="bold right">Gross</td>
-            <td class="bold right">Refunds</td>
-            <td class="bold right">Discounts</td>
-            <td class="bold right">Net Sales</td>
-        </tr>
-        {{ table_rows|safe }}
-    </table>
-    <div class="line"></div>
-    <div class="summary-line">Total Discounts: {{ total_discounts }}</div>
-    <div class="summary-line">Total Refunds:   {{ total_refunds }}</div>
-    <div class="summary-line">Total Gross:     {{ total_gross }}</div>
-    <div class="summary-line">Total Net Sales: {{ total_net_sales }}</div>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">MOP SALES</div>
-    <table>
-        <tr><td>MOP Sales Total</td><td class="right">{{ total_mop_sales }}</td></tr>
-        <tr><td>Credit - Card Based</td><td class="right">{{ mop_credit }}</td></tr>
-        <tr><td>Debit - Card Based</td><td class="right">{{ mop_debit }}</td></tr>
-        <tr><td>Mobile - Card Based</td><td class="right">{{ mop_mobile }}</td></tr>
-        <tr><td>Cash</td><td class="right">{{ mop_cash }}</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">FUEL TIER / PRODUCT REPORT</div>
-    <table class="fuel-table">
-        <tr>
-            <td class="bold">Product</td>
-            <td class="bold right">Volume</td>
-            <td class="bold right">Amount</td>
-        </tr>
-        {% for product, data in fuel_data.items() %}
-        <tr>
-            <td>{{ product }}</td>
-            <td class="right">{{ "{:,.0f}".format(data.volume) }}</td>
-            <td class="right">{{ "{:,.2f}".format(data.amount) }}</td>
-        </tr>
-        {% endfor %}
-        <tr class="bold">
-            <td>Total</td>
-            <td class="right">{{ "{:,.0f}".format(fuel_total_volume) }}</td>
-            <td class="right">{{ "{:,.2f}".format(fuel_total_amount) }}</td>
-        </tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">MOP CANCEL/REFUND</div>
-    <table>
-        <tr><td>MOP Cancel Refund</td><td class="right">{{ mop_cancel_refund }}</td></tr>
-        <tr><td>Other Refund</td><td class="right">{{ other_refund }}</td></tr>
-        <tr><td>Payment Out</td><td class="right">0.00</td></tr>
-        <tr><td>Payment In</td><td class="right">0.00</td></tr>
-        <tr><td>Total to Account For</td><td class="right">{{ total_to_account_for }}</td></tr>
-        <tr><td>CREDIT - Card Based</td><td class="right">{{ credit_card_based }}</td></tr>
-        <tr><td>CASH</td><td class="right">{{ cash_based }}</td></tr>
-        <tr><td>Tot MOP Cancel/Refunds</td><td class="right">{{ total_to_account_for }}</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">PAYMENT OUT</div>
-    <table>
-        <tr><td>Cash Back</td><td class="right">0</td></tr>
-        <tr><td>Pay Out</td><td class="right">{{ pay_out }}</td></tr>
-        <tr><td>Adjust for Vendor Payments</td><td class="right">0.00</td></tr>
-        <tr><td>Change/Check</td><td class="right">0.00</td></tr>
-        <tr><td>In House</td><td class="right">0.00</td></tr>
-        <tr><td>Safe Drops</td><td class="right">{{ safe_drops }}</td></tr>
-        <tr><td>CASH</td><td class="right">{{ safe_drops }}</td></tr>
-        <tr><td>Tot Payment Out</td><td class="right">{{ total_payment_out }}</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">PAYMENT IN</div>
-    <table>
-        <tr><td>Cash Back Cancel</td><td class="right">0</td></tr>
-        <tr><td>Pay In</td><td class="right">0</td></tr>
-        <tr><td>In House</td><td class="right">0</td></tr>
-        <tr><td>Safe Loans</td><td class="right">0</td></tr>
-        <tr><td>Tot Payment In</td><td class="right">0</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">MEMO ITEMS (LEFT)</div>
-    <table>
-        <tr>
-            <td class="bold">Category</td>
-            <td class="bold right">Count</td>
-            <td class="bold right">Amount</td>
-        </tr>
-        <tr><td>Items</td><td class="right">{{ total_items }}</td><td class="right"></td></tr>
-        <tr><td>Customer</td><td class="right">{{ total_customers }}</td><td class="right"></td></tr>
-        <tr><td>Void Lines</td><td class="right">{{ void_lines_count }}</td><td class="right">{{ void_lines_amount }}</td></tr>
-        <tr><td>Void Tickets</td><td class="right">{{ void_tickets_count }}</td><td class="right">{{ void_tickets_amount }}</td></tr>
-        <tr><td>Positive</td><td class="right">{{ positive_count }}</td><td class="right">{{ positive_amount }}</td></tr>
-        <tr><td>Negative</td><td class="right">{{ negative_count }}</td><td class="right">{{ negative_amount }}</td></tr>
-        <tr><td>Prepaid Recharge</td><td class="right">0</td><td class="right">0</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">MEMO ITEMS (RIGHT)</div>
-    <table>
-        <tr>
-            <td class="bold">Category</td>
-            <td class="bold right">Count</td>
-            <td class="bold right">Amount</td>
-        </tr>
-        <tr><td>Suspended</td><td class="right">{{ suspended_count }}</td><td class="right">{{ suspended_amount }}</td></tr>
-        <tr><td>Suspend/Void</td><td class="right">{{ suspend_void_count }}</td><td class="right">{{ suspend_void_amount }}</td></tr>
-        <tr><td>Coin Dispenser</td><td class="right">0</td><td class="right">0.00</td></tr>
-        <tr><td>Vendor Payments</td><td class="right">0</td><td class="right">0.00</td></tr>
-        <tr><td>Safe Drop Cancels</td><td class="right">0</td><td class="right">0.00</td></tr>
-        <tr><td>Prepaid Activation</td><td class="right">0</td><td class="right">0.00</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="section">
-    <div class="section-title">TOTALS</div>
-    <table>
-        <tr><td>Cash Back Fee</td><td class="right">0</td></tr>
-        <tr><td>Cancel/Refund Cash Back Fee</td><td class="right">0</td></tr>
-        <tr><td>Debit Fee</td><td class="right">0</td></tr>
-        <tr><td>Fuel Sales</td><td class="right">{{ fuel_sales }}</td></tr>
-        <tr><td>Merch Sales</td><td class="right">{{ merch_sales }}</td></tr>
-        <tr><td>FUEL DISCOUNT</td><td class="right">0</td></tr>
-        <tr><td>Refund Taxes</td><td class="right">0</td></tr>
-        <tr><td>Sales Taxes</td><td class="right">{{ sales_taxes }}</td></tr>
-        <tr><td>Tot Taxes</td><td class="right">{{ tot_taxes }}</td></tr>
-        <tr><td>Incl Taxes</td><td class="right">{{ incl_taxes }}</td></tr>
-    </table>
-</div>
-
-<div class="line"></div>
-
-<div class="center">
-    <div>*** END OF REPORT ***</div>
-</div>
-
-</body>
-</html>
-        '''
-        
         # Generate other Payment Out values (keep existing logic for other items)
         safe_drops = round(random.uniform(30000, 49000), 2)
-        total_payment_out = round(pay_out_val + safe_drops, 2)
+        total_payment_out = round(pay_out_val + safe_drops, 2)  # Use the passed pay_out_val
 
         # Generate random MOP Cancel/Refund values
         mop_cancel_refund = round(random.uniform(89, 199), 2)
@@ -704,6 +455,8 @@ if df is not None:
                 return 0
 
         memo_data = {
+            "items_count": safe_sum_numeric(df_final_param.loc[df_final_param['Description'].str.upper().str.contains('ITEM', na=False), 'Items']) if 'Items' in df_final_param.columns else 0,
+            "customer_count": safe_sum_numeric(df_final_param.loc[df_final_param['Description'].str.upper().str.contains('CUST', na=False), 'Cust#']) if 'Cust#' in df_final_param.columns else 0,
             "total_items": safe_sum_numeric(df_final_param['Items']) if 'Items' in df_final_param.columns else 0,
             "total_customers": safe_sum_numeric(df_final_param['Cust#']) if 'Cust#' in df_final_param.columns else 0,
             "void_lines_count": np.random.randint(50, 251),
@@ -731,15 +484,14 @@ if df is not None:
         open_time = generate_random_time()
         close_time = generate_random_time()
 
-        # Build table rows HTML
         table_html = ""
         for _, row in df_final_param.iterrows():
             table_html += f"""
             <tr class="dept-table">
                 <td>{row['Dept#'] if pd.notna(row['Dept#']) else ''}</td>
                 <td>{row['Description']}</td>
-                <td class="right">{int(row['Cust#']) if pd.notna(row['Cust#']) and str(row['Cust#']).replace('.0', '').isdigit() else ''}</td>
-                <td class="right">{int(row['Items']) if pd.notna(row['Items']) and str(row['Items']).replace('.0', '').isdigit() else ''}</td>
+                <td class="right">{int(row['Cust#']) if pd.notna(row['Cust#']) and str(row['Cust#']).isdigit() else ''}</td>
+                <td class="right">{int(row['Items']) if pd.notna(row['Items']) and str(row['Items']).isdigit() else ''}</td>
                 <td class="right">{row['% of Sales'] if pd.notna(row['% of Sales']) else ''}</td>
                 <td class="right">{row['Gross'] if pd.notna(row['Gross']) else ''}</td>
                 <td class="right">{row['Refunds'] if pd.notna(row['Refunds']) else ''}</td>
@@ -758,6 +510,7 @@ if df is not None:
             "total_net_sales": f"{total_merch_sale_param:,.2f}",
             "total_discounts": f"{total_discounts_param:,.2f}",
             "total_refunds": f"{total_refunds_param:,.2f}",
+            "total_percent": f"{total_percent_param:.2f}",
             "fuel_data": fuel_data,
             "fuel_total_volume": fuel_total_volume,
             "fuel_total_amount": fuel_total_amount,
@@ -767,7 +520,7 @@ if df is not None:
             "sales_taxes": f"{sales_tax_param:,.2f}",
             "tot_taxes": f"{tot_taxes_param:,.2f}",
             "incl_taxes": f"{incl_taxes_param:,.2f}",
-            "pay_out": f"{pay_out_val:,.2f}",
+            "pay_out": f"{pay_out_val:,.2f}",  # Use the passed value
             "safe_drops": f"{safe_drops:,.2f}",
             "total_payment_out": f"{total_payment_out:,.2f}",
             "mop_cancel_refund": f"{mop_cancel_refund:.2f}",
@@ -782,89 +535,65 @@ if df is not None:
             **memo_data
         }
 
-        # Render the template
-        template = Template(template_str)
-        html_content = template.render(context)
-        return html_content
+        with open("rendered_main_report.html", "w", encoding="utf-8") as f:
+            f.write(report_template.render(context))
 
-    # ACCOUNTANT REPORT FUNCTION (Updated to use xhtml2pdf)
+        output_path = f"Main_{store_name.replace(' ', '_').replace('-', '_')}_{open_period_date.strftime('%Y_%m_%d')}.pdf"
+        pdfkit.from_file("rendered_main_report.html", output_path, options=pdf_options, configuration=config)
+        return output_path
+
+    # ACCOUNTANT REPORT FUNCTION (New accountant report) - UPDATED VERSION
     def build_accountant_report():
+        env = Environment(loader=FileSystemLoader("."))
+        accountant_template = env.get_template("Accountant_report.html")
+
         # Calculate other sales (excluding cigarettes and e-cigarettes)
         other_sales = total_merch_sale - cig_gross - ecig_gross
-        
-        html_template = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Accountant Report - {store_name}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                .header {{ text-align: center; margin-bottom: 30px; }}
-                .store-info {{ margin-bottom: 20px; }}
-                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                th, td {{ border: 1px solid #000; padding: 8px; text-align: left; }}
-                th {{ background-color: #f0f0f0; }}
-                .right {{ text-align: right; }}
-                .section {{ margin-bottom: 20px; }}
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Accountant's Report</h1>
-                <h2>{store_name}</h2>
-                <p>Store ID: {store_id}</p>
-                <p>Report Period: {open_period_date.strftime('%Y-%m-%d')} to {close_period_date.strftime('%Y-%m-%d')}</p>
-            </div>
-            
-            <div class="section">
-                <h3>Fuel Sales Summary</h3>
-                <table>
-                    <tr><th>Product</th><th>Gallons</th><th>Amount</th></tr>
-                    <tr><td>Regular</td><td class="right">{fuel_data["REG"]["volume"]:,}</td><td class="right">${fuel_data["REG"]["amount"]:,.2f}</td></tr>
-                    <tr><td>Plus</td><td class="right">{fuel_data["PLUS"]["volume"]:,}</td><td class="right">${fuel_data["PLUS"]["amount"]:,.2f}</td></tr>
-                    <tr><td>Super</td><td class="right">{fuel_data["SUPER"]["volume"]:,}</td><td class="right">${fuel_data["SUPER"]["amount"]:,.2f}</td></tr>
-                    <tr><td>Diesel</td><td class="right">{fuel_data["DIESEL"]["volume"]:,}</td><td class="right">${fuel_data["DIESEL"]["amount"]:,.2f}</td></tr>
-                    <tr style="font-weight: bold;"><td>TOTAL</td><td class="right">{fuel_total_volume:,}</td><td class="right">${fuel_total_amount:,.2f}</td></tr>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h3>Store Sales Summary</h3>
-                <table>
-                    <tr><th>Category</th><th>Details</th><th>Amount</th></tr>
-                    <tr><td>Cigarettes</td><td class="right">{cig_items} packets</td><td class="right">${cig_gross:,.2f}</td></tr>
-                    <tr><td>E-Cigarettes</td><td class="right">{ecig_items} packets</td><td class="right">${ecig_gross:,.2f}</td></tr>
-                    <tr><td>Other Sales</td><td class="right">-</td><td class="right">${other_sales:,.2f}</td></tr>
-                    <tr style="font-weight: bold;"><td>TOTAL STORE SALES</td><td class="right">-</td><td class="right">${total_merch_sale:,.2f}</td></tr>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h3>Ending Inventory - {close_period_date.strftime('%m/%d/%Y')}</h3>
-                <table>
-                    <tr><th>Fuel Type</th><th>Gallons</th></tr>
-                    <tr><td>Regular</td><td class="right">{inventory_regular:,}</td></tr>
-                    <tr><td>Super</td><td class="right">{inventory_super:,}</td></tr>
-                    <tr><td>Diesel</td><td class="right">{inventory_diesel:,}</td></tr>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h3>Summary</h3>
-                <table>
-                    <tr><td>Total Fuel Sales</td><td class="right">${fuel_total_amount:,.2f}</td></tr>
-                    <tr><td>Total Merchandise Sales</td><td class="right">${total_merch_sale:,.2f}</td></tr>
-                    <tr><td>Total Gallons Sold</td><td class="right">{fuel_total_volume:,}</td></tr>
-                </table>
-            </div>
-        </body>
-        </html>
-        """
-        
-        return html_template
 
-    # UPDATED BUTTONS SECTION
+        context = {
+            "period_month": f"{open_period_date.strftime('%B %Y')}",
+            "station_name": store_name,
+            "station_id": store_id,
+            "station_full_name": f"{store_name}, {store_id}",
+            "report_period": f"{open_period_date.strftime('%Y-%m-%d')} to {close_period_date.strftime('%Y-%m-%d')}",
+            
+            # Fuel data
+            "fuel_regular_gal": fuel_data["REG"]["volume"],
+            "fuel_regular_amount": f"{fuel_data['REG']['amount']:,.2f}",
+            "fuel_plus_gal": fuel_data["PLUS"]["volume"],
+            "fuel_plus_amount": f"{fuel_data['PLUS']['amount']:,.2f}",
+            "fuel_super_gal": fuel_data["SUPER"]["volume"],
+            "fuel_super_amount": f"{fuel_data['SUPER']['amount']:,.2f}",
+            "fuel_diesel_gal": fuel_data["DIESEL"]["volume"],
+            "fuel_diesel_amount": f"{fuel_data['DIESEL']['amount']:,.2f}",
+            
+            # Store sales data
+            "cig_packets": cig_items,
+            "cig_sales": f"{cig_gross:,.2f}",
+            "ecig_sales": f"{ecig_gross:,.2f}",
+            "other_sales": f"{other_sales:,.2f}",
+            "total_store_sales": f"{total_merch_sale:,.2f}",
+            
+            # Summary data
+            "total_fuel_sales": f"{fuel_total_amount:,.2f}",
+            "total_merch_sales": f"{total_merch_sale:,.2f}",
+            "total_gallons": fuel_total_volume,
+            
+            # NEW: Ending inventory data with manual inputs and close date
+            "inventory_date": close_period_date.strftime('%m/%d/%Y'),
+            "inventory_regular": f"{inventory_regular:,}",
+            "inventory_super": f"{inventory_super:,}",
+            "inventory_diesel": f"{inventory_diesel:,}"
+        }
+
+        with open("rendered_accountant_report.html", "w", encoding="utf-8") as f:
+            f.write(accountant_template.render(context))
+
+        output_path = f"Accountant_{store_name.replace(' ', '_').replace('-', '_')}_{open_period_date.strftime('%Y_%m_%d')}.pdf"
+        pdfkit.from_file("rendered_accountant_report.html", output_path, options=pdf_options, configuration=config)
+        return output_path
+
+    # UPDATED BUTTONS SECTION - FIXED VERSION
     st.markdown("---")
     st.subheader("📄 Generate Reports")
     
@@ -885,8 +614,7 @@ if df is not None:
             total_discounts_merch_only = pd.to_numeric(df_final.loc[clean_mask, 'Discounts'], errors='coerce').sum()
             total_refunds_merch_only = pd.to_numeric(df_final.loc[clean_mask, 'Refunds'], errors='coerce').sum()
             
-            # Generate HTML content
-            html_content = build_main_report(
+            path = build_main_report(
                 manual_mop_values, 
                 total_mop_sales, 
                 df_final, 
@@ -901,38 +629,15 @@ if df is not None:
                 0,
                 pay_out  # Pass the pay_out value
             )
-            
-            # Convert HTML to PDF
-            pdf_bytes = html_to_pdf(html_content)
-            
-            if pdf_bytes:
-                st.success("✅ Main Report created successfully!")
+            st.success("✅ Main Report created successfully!")
+            with open(path, "rb") as f:
                 download_filename = f"Main_{store_name.replace(' ', '_').replace('-', '_')}_{open_period_date.strftime('%Y_%m_%d')}.pdf"
-                st.download_button(
-                    label="⬇️ Download Main Report",
-                    data=pdf_bytes,
-                    file_name=download_filename,
-                    mime="application/pdf"
-                )
-            else:
-                st.error("❌ Failed to generate PDF. Please check your data and try again.")
+                st.download_button("⬇️ Download Main Report", f, file_name=download_filename, mime="application/pdf")
 
     with col2:
         if st.button("📋 Generate Accountant's Report", use_container_width=True):
-            # Generate HTML content
-            html_content = build_accountant_report()
-            
-            # Convert HTML to PDF
-            pdf_bytes = html_to_pdf(html_content)
-            
-            if pdf_bytes:
-                st.success("✅ Accountant's Report created successfully!")
+            path = build_accountant_report()
+            st.success("✅ Accountant's Report created successfully!")
+            with open(path, "rb") as f:
                 download_filename = f"Accountant_{store_name.replace(' ', '_').replace('-', '_')}_{open_period_date.strftime('%Y_%m_%d')}.pdf"
-                st.download_button(
-                    label="⬇️ Download Accountant's Report",
-                    data=pdf_bytes,
-                    file_name=download_filename,
-                    mime="application/pdf"
-                )
-            else:
-                st.error("❌ Failed to generate PDF. Please check your data and try again.")
+                st.download_button("⬇️ Download Accountant's Report", f, file_name=download_filename, mime="application/pdf")

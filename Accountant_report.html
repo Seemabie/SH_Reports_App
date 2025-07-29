@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Accountant's Report</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: white;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .report-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .table-section {
+            margin-bottom: 35px;
+        }
+        
+        .section-header {
+            background-color: #5B9BD5;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            padding: 15px;
+            text-transform: uppercase;
+            border: 2px solid #000;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+        }
+        
+        .data-table th {
+            background-color: white;
+            color: black;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px 8px;
+            border: 1px solid #000;
+            font-size: 16px;
+        }
+        
+        .data-table td {
+            text-align: center;
+            padding: 10px 8px;
+            border: 1px solid #000;
+            font-size: 16px;
+            background-color: white;
+        }
+        
+        .station-name-cell {
+            text-align: left;
+            background-color: white;
+            font-weight: bold;
+            padding-left: 12px;
+            font-size: 16px;
+        }
+        
+        .number-cell {
+            text-align: right;
+            padding-right: 12px;
+            background-color: white;
+            font-size: 16px;
+        }
+        
+        .currency-cell {
+            text-align: right;
+            padding-right: 12px;
+            background-color: white;
+            font-size: 16px;
+        }
+        
+        .fuel-header {
+            background-color: white;
+            color: black;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .subheader {
+            background-color: white;
+            text-align: center;
+            color: black;
+            font-weight: normal;
+            font-size: 15px;
+        }
+        
+        .inventory-table {
+            margin-top: 25px;
+        }
+        
+        @media print {
+            body {
+                padding: 8px;
+                font-size: 16px;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+                font-size: 15px;
+            }
+            
+            .section-header {
+                font-size: 18px;
+                padding: 12px;
+            }
+            
+            .station-name-cell {
+                font-size: 15px;
+            }
+            
+            .number-cell,
+            .currency-cell {
+                font-size: 15px;
+            }
+            
+            .fuel-header {
+                font-size: 15px;
+            }
+            
+            .subheader {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        
+        <!-- FUEL SALES TABLE -->
+        <div class="table-section">
+            <div class="section-header">
+                DETAILS OF FUEL SOLD DURING {{ period_month }}
+            </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th rowspan="3" style="vertical-align: middle;">Station ID</th>
+                        <th rowspan="3" style="vertical-align: middle;">Station Name</th>
+                        <th colspan="8" class="fuel-header">GALONS SOLD</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2" class="subheader">Regular</th>
+                        <th colspan="2" class="subheader">Plus</th>
+                        <th colspan="2" class="subheader">Vpower</th>
+                        <th colspan="2" class="subheader">Diesel</th>
+                    </tr>
+                    <tr>
+                        <th class="subheader">Gal</th>
+                        <th class="subheader">$</th>
+                        <th class="subheader">Gal</th>
+                        <th class="subheader">$</th>
+                        <th class="subheader">Gal</th>
+                        <th class="subheader">$</th>
+                        <th class="subheader">Gal</th>
+                        <th class="subheader">$</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="number-cell">{{ station_id }}</td>
+                        <td class="station-name-cell">{{ station_name }}</td>
+                        <td class="number-cell">{{ fuel_regular_gal }}</td>
+                        <td class="currency-cell">{{ fuel_regular_amount }}</td>
+                        <td class="number-cell">{{ fuel_plus_gal }}</td>
+                        <td class="currency-cell">{{ fuel_plus_amount }}</td>
+                        <td class="number-cell">{{ fuel_super_gal }}</td>
+                        <td class="currency-cell">{{ fuel_super_amount }}</td>
+                        <td class="number-cell">{{ fuel_diesel_gal }}</td>
+                        <td class="currency-cell">{{ fuel_diesel_amount }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- STORE INFORMATION TABLE -->
+        <div class="table-section">
+            <div class="section-header">
+                Monthly Information of Store
+            </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">S.No.</th>
+                        <th rowspan="2" style="vertical-align: middle;">Station Name</th>
+                        <th colspan="2" class="subheader">Cigrette Sale</th>
+                        <th rowspan="2" style="vertical-align: middle;" class="subheader">e-cig sale<br>$</th>
+                        <th rowspan="2" style="vertical-align: middle;" class="subheader">Other Sale<br>$</th>
+                        <th rowspan="2" style="vertical-align: middle;" class="subheader">Total Merch Sales<br>$</th>
+                    </tr>
+                    <tr>
+                        <th class="subheader">Pkts</th>
+                        <th class="subheader">$</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="number-cell">{{ station_id }}</td>
+                        <td class="station-name-cell">{{ station_name }}</td>
+                        <td class="number-cell">{{ cig_packets }}</td>
+                        <td class="currency-cell">{{ cig_sales }}</td>
+                        <td class="currency-cell">{{ ecig_sales }}</td>
+                        <td class="currency-cell">{{ other_sales }}</td>
+                        <td class="currency-cell">{{ total_store_sales }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ENDING INVENTORY TABLE -->
+        <div class="table-section inventory-table">
+            <div class="section-header">
+                Ending Inventory of Fuel - {{ period_month }}
+            </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">St.No.</th>
+                        <th rowspan="2" style="vertical-align: middle;">Station Name</th>
+                        <th rowspan="2" style="vertical-align: middle;">Date</th>
+                        <th rowspan="2" style="vertical-align: middle;">Regular</th>
+                        <th rowspan="2" style="vertical-align: middle;">Super</th>
+                        <th rowspan="2" style="vertical-align: middle;">Diesel</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="number-cell">{{ station_id }}</td>
+                        <td class="station-name-cell">{{ station_name }}</td>
+                        <td class="number-cell">{{ inventory_date }}</td>
+                        <td class="number-cell">{{ inventory_regular }}</td>
+                        <td class="number-cell">{{ inventory_super }}</td>
+                        <td class="number-cell">{{ inventory_diesel }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</body>
+</html>
