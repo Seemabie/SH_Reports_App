@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Department Full Report</title>
+    <style>
+        @page {
+            margin: 0.5in;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: #fff;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        td {
+            padding: 3px 5px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .line {
+            border-bottom: 1px solid #000;
+            margin: 10px 0;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .dept-table td {
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .summary-line {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="bold">{{ store_number }}</div>
+    <div>Store ID: {{ store_id }}</div>
+    <div>Period: {{ period }} to {{ close_period }}</div>
+    <div>Department Full Report</div>
+</div>
+
+<div class="line"></div>
+
+<!-- Department Report Section -->
+<div class="section">
+    <div class="section-title">DEPARTMENT REPORT</div>
+    
+    <table class="dept-table">
+        <tr>
+            <td class="bold">Dept#</td>
+            <td class="bold">Description</td>
+            <td class="bold right">Cust#</td>
+            <td class="bold right">Items</td>
+            <td class="bold right">% Sales</td>
+            <td class="bold right">Gross</td>
+            <td class="bold right">Refunds</td>
+            <td class="bold right">Discounts</td>
+            <td class="bold right">Net Sales</td>
+        </tr>
+        {{ table_rows }}
+    </table>
+    
+    <div class="line"></div>
+    
+    <div class="summary-line">Total Discounts: {{ total_discounts }}</div>
+    <div class="summary-line">Total Refunds:   {{ total_refunds }}</div>
+    <div class="summary-line">Total Gross:     {{ total_gross }}</div>
+    <div class="summary-line">Total Net Sales: {{ total_net_sales }}</div>
+</div>
+
+<div class="line"></div>
+
+<!-- MOP Sales Section -->
+<div class="section">
+    <div class="section-title">MOP SALES</div>
+    
+    <table>
+        <tr><td>MOP Sales Total</td><td class="right">{{ total_mop_sales }}</td></tr>
+        <tr><td>Credit - Card Based</td><td class="right">{{ mop_credit }}</td></tr>
+        <tr><td>Debit - Card Based</td><td class="right">{{ mop_debit }}</td></tr>
+        <tr><td>Mobile - Card Based</td><td class="right">{{ mop_mobile }}</td></tr>
+        <tr><td>Cash</td><td class="right">{{ mop_cash }}</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Fuel Tier / Product Report Section -->
+<div class="section">
+    <div class="section-title">FUEL TIER / PRODUCT REPORT</div>
+    
+    <table>
+        <tr>
+            <td class="bold">Product</td>
+            <td class="bold right">Volume</td>
+            <td class="bold right">Amount</td>
+        </tr>
+        {% for product, data in fuel_data.items() %}
+        <tr>
+            <td>{{ product }}</td>
+            <td class="right">{{ "{:,.0f}".format(data.volume) }}</td>
+            <td class="right">{{ "{:,.2f}".format(data.amount) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="bold">
+            <td>Total</td>
+            <td class="right">{{ "{:,.0f}".format(fuel_total_volume) }}</td>
+            <td class="right">{{ "{:,.2f}".format(fuel_total_amount) }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- MOP Cancel/Refund Section -->
+<div class="section">
+    <div class="section-title">MOP CANCEL/REFUND</div>
+    
+    <table>
+        <tr><td>MOP Cancel Refund</td><td class="right">{{ mop_cancel_refund }}</td></tr>
+        <tr><td>Other Refund</td><td class="right">{{ other_refund }}</td></tr>
+        <tr><td>Payment Out</td><td class="right">0.00</td></tr>
+        <tr><td>Payment In</td><td class="right">0.00</td></tr>
+        <tr><td>Total to Account For</td><td class="right">{{ total_to_account_for }}</td></tr>
+        <tr><td>CREDIT - Card Based</td><td class="right">{{ credit_card_based }}</td></tr>
+        <tr><td>CASH</td><td class="right">{{ cash_based }}</td></tr>
+        <tr><td>Tot MOP Cancel/Refunds</td><td class="right">{{ total_to_account_for }}</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Payment Out Section -->
+<div class="section">
+    <div class="section-title">PAYMENT OUT</div>
+    
+    <table>
+        <tr><td>Cash Back</td><td class="right">0</td></tr>
+        <tr><td>Pay Out</td><td class="right">{{ pay_out }}</td></tr>
+        <tr><td>Adjust for Vendor Payments</td><td class="right">0.00</td></tr>
+        <tr><td>Change/Check</td><td class="right">0.00</td></tr>
+        <tr><td>In House</td><td class="right">0.00</td></tr>
+        <tr><td>Safe Drops</td><td class="right">{{ safe_drops }}</td></tr>
+        <tr><td>CASH</td><td class="right">{{ safe_drops }}</td></tr>
+        <tr><td>Tot Payment Out</td><td class="right">{{ total_payment_out }}</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Payment In Section -->
+<div class="section">
+    <div class="section-title">PAYMENT IN</div>
+    
+    <table>
+        <tr><td>Cash Back Cancel</td><td class="right">0</td></tr>
+        <tr><td>Pay In</td><td class="right">0</td></tr>
+        <tr><td>In House</td><td class="right">0</td></tr>
+        <tr><td>Safe Loans</td><td class="right">0</td></tr>
+        <tr><td>Tot Payment In</td><td class="right">0</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Memo Items (Left) Section -->
+<div class="section">
+    <div class="section-title">MEMO ITEMS (LEFT)</div>
+    
+    <table>
+        <tr>
+            <td class="bold">Category</td>
+            <td class="bold right">Count</td>
+            <td class="bold right">Amount</td>
+        </tr>
+        <tr><td>Items</td><td class="right">{{ total_items }}</td><td class="right"></td></tr>
+        <tr><td>Customer</td><td class="right">{{ total_customers }}</td><td class="right"></td></tr>
+        <tr><td>Void Lines</td><td class="right">{{ void_lines_count }}</td><td class="right">{{ void_lines_amount }}</td></tr>
+        <tr><td>Void Tickets</td><td class="right">{{ void_tickets_count }}</td><td class="right">{{ void_tickets_amount }}</td></tr>
+        <tr><td>Positive</td><td class="right">{{ positive_count }}</td><td class="right">{{ positive_amount }}</td></tr>
+        <tr><td>Negative</td><td class="right">{{ negative_count }}</td><td class="right">{{ negative_amount }}</td></tr>
+        <tr><td>Prepaid Recharge</td><td class="right">0</td><td class="right">0</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Memo Items (Right) Section -->
+<div class="section">
+    <div class="section-title">MEMO ITEMS (RIGHT)</div>
+    
+    <table>
+        <tr>
+            <td class="bold">Category</td>
+            <td class="bold right">Count</td>
+            <td class="bold right">Amount</td>
+        </tr>
+        <tr><td>Suspended</td><td class="right">{{ suspended_count }}</td><td class="right">{{ suspended_amount }}</td></tr>
+        <tr><td>Suspend/Void</td><td class="right">{{ suspend_void_count }}</td><td class="right">{{ suspend_void_amount }}</td></tr>
+        <tr><td>Coin Dispenser</td><td class="right">0</td><td class="right">0.00</td></tr>
+        <tr><td>Vendor Payments</td><td class="right">0</td><td class="right">0.00</td></tr>
+        <tr><td>Safe Drop Cancels</td><td class="right">0</td><td class="right">0.00</td></tr>
+        <tr><td>Prepaid Activation</td><td class="right">0</td><td class="right">0.00</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<!-- Totals Section -->
+<div class="section">
+    <div class="section-title">TOTALS</div>
+    
+    <table>
+        <tr><td>Cash Back Fee</td><td class="right">0</td></tr>
+        <tr><td>Cancel/Refund Cash Back Fee</td><td class="right">0</td></tr>
+        <tr><td>Debit Fee</td><td class="right">0</td></tr>
+        <tr><td>Fuel Sales</td><td class="right">{{ fuel_sales }}</td></tr>
+        <tr><td>Merch Sales</td><td class="right">{{ merch_sales }}</td></tr>
+        <tr><td>FUEL DISCOUNT</td><td class="right">0</td></tr>
+        <tr><td>Refund Taxes</td><td class="right">0</td></tr>
+        <tr><td>Sales Taxes</td><td class="right">{{ sales_taxes }}</td></tr>
+        <tr><td>Tot Taxes</td><td class="right">{{ tot_taxes }}</td></tr>
+        <tr><td>Incl Taxes</td><td class="right">{{ incl_taxes }}</td></tr>
+    </table>
+</div>
+
+<div class="line"></div>
+
+<div class="center">
+    <div>*** END OF REPORT ***</div>
+</div>
+
+</body>
+</html>
