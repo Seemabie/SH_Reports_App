@@ -2,4 +2,4 @@ streamlit
 pandas
 numpy
 jinja2
-pdfkit
+xhtml2pdf
